@@ -19,7 +19,8 @@ import com.nsaasystems.inventory_sales_management_system.entity.User;
 import com.nsaasystems.inventory_sales_management_system.repo.UserRepository;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {"http://localhost:3000",
+        "https://coral-app-4mdso.ondigitalocean.app/api/auth/login"})
 @RequestMapping("/api/auth")
 public class AuthController {
 
