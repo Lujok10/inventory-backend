@@ -1,0 +1,5 @@
+target
+.git
+.gitignore
+uploads/images
+hs_err_pid*.log
