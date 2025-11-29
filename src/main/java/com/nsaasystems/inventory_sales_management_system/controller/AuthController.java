@@ -28,26 +28,43 @@ public class AuthController {
 	@Autowired
 	private UserRepository userRepository;
 
-	@PostMapping("/register")
-	public ResponseEntity<String> registerUser(@RequestBody User user) {
-		logger.info("Registration attempt for username: {}", user.getUsername());
+    @PostMapping("/register")
+    public ResponseEntity<String> registerUser(
+            @RequestBody User user,
+            @org.springframework.web.bind.annotation.RequestHeader(
+                    value = "X-User-Role", required = false) String requesterRole) {
 
-		Optional<User> existingUser = userRepository.findByUsername(user.getUsername());
-		if (existingUser.isPresent()) {
-			logger.warn("Registration failed - Username already exists: {}", user.getUsername());
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username already exists");
-		}
+        logger.info("Registration attempt for username: {}", user.getUsername());
 
-		String hashedPassword = BCrypt.hashpw(user.getPassword(), BCrypt.gensalt());
-		user.setPassword(hashedPassword);
+        // Allow bootstrapping: if no users exist yet, allow first account to be created
+        long userCount = userRepository.count();
+        if (userCount > 0) {
+            // For all subsequent users, only MANAGER can create accounts
+            if (requesterRole == null || !requesterRole.equalsIgnoreCase("MANAGER")) {
+                logger.warn("Registration denied - non-manager tried to register user. Header role: {}",
+                        requesterRole);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Only MANAGER users can create new accounts.");
+            }
+        }
 
-		userRepository.save(user);
-		logger.info("User registered successfully: {}", user.getUsername());
+        Optional<User> existingUser = userRepository.findByUsername(user.getUsername());
+        if (existingUser.isPresent()) {
+            logger.warn("Registration failed - Username already exists: {}", user.getUsername());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username already exists");
+        }
 
-		return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
-	}
+        String hashedPassword = BCrypt.hashpw(user.getPassword(), BCrypt.gensalt());
+        user.setPassword(hashedPassword);
 
-	@PostMapping("/login")
+        userRepository.save(user);
+        logger.info("User registered successfully: {}", user.getUsername());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
+    }
+
+
+    @PostMapping("/login")
 	public ResponseEntity<String> loginUser(@RequestBody User loginRequest) {
 		logger.info("Login attempt for username: {}", loginRequest.getUsername());
 
